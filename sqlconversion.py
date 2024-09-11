@@ -1,4 +1,4 @@
-# Script para convertir COPY a INSERT con ON CONFLICT
+# Script para convertir COPY a INSERT con ON CONFLICT y reemplazar \N por NULL
 
 # Define las rutas de los archivos
 input_file_path = 'weather_db.sql'
@@ -12,6 +12,10 @@ with open(input_file_path, 'r') as file:
 modified_sql = []
 inside_copy_block = False
 columns = []
+
+# Agregar una instrucción para crear un índice único antes de los INSERTs
+modified_sql.append("-- Crear índice único para soportar ON CONFLICT\n")
+modified_sql.append("CREATE UNIQUE INDEX IF NOT EXISTS idx_station_timestamp ON public.weather_obs (station_id, \"timestamp\");\n")
 
 for line in sql_content:
     # Detectamos el inicio del bloque COPY
@@ -28,16 +32,13 @@ for line in sql_content:
     
     # Convertimos cada línea de datos en una sentencia INSERT
     if inside_copy_block:
-        # Extraer los valores de la línea
-        values = line.strip().split('\t')
+        # Extraer los valores de la línea y reemplazar \N por NULL
+        values = [v if v != r'\N' else 'NULL' for v in line.strip().split('\t')]
         # Formar la sentencia INSERT con ON CONFLICT
         insert_statement = f"INSERT INTO public.weather_obs ({', '.join(columns)})\n"
-        insert_statement += f"VALUES ({', '.join([f"'{v}'" for v in values])})\n"
+        insert_statement += f"VALUES ({', '.join([f"'{v}'" if v != 'NULL' else v for v in values])})\n"
         insert_statement += "ON CONFLICT (station_id, \"timestamp\") DO NOTHING;\n"
         modified_sql.append(insert_statement)
-    else:
-        # Copiamos las líneas que no pertenecen al bloque COPY
-        modified_sql.append(line)
 
 # Guardamos el contenido modificado en un nuevo archivo
 with open(output_file_path, 'w') as modified_file:
