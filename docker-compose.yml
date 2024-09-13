@@ -1,18 +1,17 @@
 services:
   cloudsql-proxy:
-    image: gcr.io/cloudsql-docker/gce-proxy:1.19.1
-    command: /cloud_sql_proxy -instances=glowing-sanctum-435218:us-central1:weather-db-instance=tcp:5432
-    volumes:
-      - ./glowing-sanctum-435218-h3-0addde225723.json:/config/glowing-sanctum-435218-h3-0addde225723.json
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/config/glowing-sanctum-435218-h3-0addde225723.json
-
+    image: gcr.io/cloudsql-docker/gce-proxy:1.28.0
+    container_name: cloudsql-proxy
+    platform: linux/amd64
+    command: /cloud_sql_proxy glowing-sanctum-435218-h3:us-central1:weather-db-instance=tcp:5432
+    ports: 
+      - "5432:5432"
   app:
-    build: .
+    build:
+      context: .
+    container_name: weather_app
     depends_on:
       - cloudsql-proxy
-    volumes:
-      - .:/app
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/glowing-sanctum-435218-h3-0addde225723.json
-    command: python main.py
+    env_file:
+      - .env
+    command: ["python", "main.py"]

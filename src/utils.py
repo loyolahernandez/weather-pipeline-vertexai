@@ -116,14 +116,23 @@ def connect_to_postgres():
     """
     attempts = 0
     max_attempts = 3
+    
+    host = os.getenv('POSTGRES_HOST', '127.0.0.1')
+    port = os.getenv('POSTGRES_PORT', '5432')
+    database = os.getenv('POSTGRES_DB', 'weather_db')
+    user = os.getenv('POSTGRES_USER', 'myuser')
+    password = os.getenv('POSTGRES_PASSWORD', 'mypassword')
+
     while attempts < max_attempts:
+
+
         try:
             conn = psycopg2.connect(
-                host="db",
-                port="5432",
-                database="weather_db",
-                user="myuser",
-                password="mypassword"
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password
             )
             print("Successfully connected to PostgreSQL")
             return conn
